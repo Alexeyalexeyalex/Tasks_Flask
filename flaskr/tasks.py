@@ -5,23 +5,24 @@ from datetime import datetime
 from flask import jsonify, abort, request, Blueprint
 from .db import getdb
 
+
 # Необходимая настройка для выноса ссылок из файла инит
 main = Blueprint('main', __name__)
 
 @main.errorhandler(404)
 def not_found(e):
     """Обработка ошибки 404 для вывода json"""
-    return jsonify(error=str(e.description))
+    return jsonify(error=str(e.description)), 404
 
 @main.errorhandler(500)
 def internal_server_error(e):
     """Обработка ошибки 500 для вывода json"""
-    return jsonify(error=str(e.description))
+    return jsonify(error=str(e.description)), 500
 
 @main.errorhandler(400)
 def bad_request(e):
     """Обработка ошибки 400 для вывода json"""
-    return jsonify(error=str(e.description))
+    return jsonify(error=str(e.description)), 400
 
 
 @main.route('/', methods=['GET'])
@@ -39,16 +40,15 @@ def get_tasks():
 @main.route('/tasks/<int:task_id>', methods=['GET'])
 def get_task(task_id):
     """Обработка метода получения задачи по id"""
-    try:
-        db_connection = getdb()
-        cursor = db_connection.cursor(dictionary=True)
-        cursor.execute(f"SELECT * FROM tasks WHERE id = {task_id}")
-        tasks = cursor.fetchall()
-        cursor.close()
 
-        return jsonify({'tasks': list(tasks)})
-    except:
-        abort(404, description="Не удалось найти задачу")
+    db_connection = getdb()
+    cursor = db_connection.cursor(dictionary=True)
+    cursor.execute(f"SELECT * FROM tasks WHERE id = {task_id}")
+    tasks = cursor.fetchall()
+    cursor.close()
+
+    return jsonify({'tasks': list(tasks)}), 200
+
 
 
 @main.route('/', methods=['POST'])
@@ -70,7 +70,7 @@ def create_task():
         task_id = cursor.lastrowid
         cursor.close()
         db_connection.commit()
-        return get_task(task_id), 201
+        return get_task(task_id)
     except:
         abort(400, description="Неправильно заданы параметры")
 
@@ -85,36 +85,31 @@ def update_task(task_id):
         abort(400, description="Не задан параметр done")
 
 
-
+    
     time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    try:
-        db_connection = getdb()
-        cursor = db_connection.cursor(dictionary=True)
-        cursor.execute(
-            "UPDATE tasks SET title = %s, description = %s, updated_at = %s, done = %s \
-                WHERE id = %s",
-            (request.json['title'], request.json['description'], time_now,
-                request.json['done'], task_id)
-        )
-        cursor.close()
-        db_connection.commit()
+    db_connection = getdb()
+    cursor = db_connection.cursor(dictionary=True)
+    cursor.execute(
+        "UPDATE tasks SET title = %s, description = %s, updated_at = %s, done = %s \
+            WHERE id = %s",
+        (request.json['title'], request.json['description'], time_now,
+            request.json['done'], task_id)
+    )
+    cursor.close()
+    db_connection.commit()
 
-        return  get_task(task_id), 201
-    except:
-        abort(404, description="Не удалось найти задачу")
+    return  get_task(task_id)
 
 
 @main.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     """Обработка метода удаления задачи по id"""
-    try:
-        db_connection = getdb()
-        cursor = db_connection.cursor(dictionary=True)
-        cursor.execute(f"DELETE FROM tasks WHERE id = {task_id}")
-        cursor.close()
-        db_connection.commit()
+    db_connection = getdb()
+    cursor = db_connection.cursor(dictionary=True)
+    cursor.execute(f"DELETE FROM tasks WHERE id = {task_id}")
+    cursor.close()
+    db_connection.commit()
 
-        return jsonify({"info":"Задача успешно удалена"})
-    except:
-        abort(404, description="Не удалось найти задачу")
+    return jsonify({"info":"Задача успешно удалена"})
+

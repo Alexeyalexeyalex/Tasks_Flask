@@ -1,0 +1,7 @@
+{
+    "DB_HOST":"localhost",
+    "DB_USERNAME":"root",
+    "DB_PASSWORD":"Qq112233!",
+    "DB_DATABASE":"flask_test",
+    "TESTING": true
+}
